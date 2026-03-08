@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>😤 Angry Bot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #e8e2dc;
+      --surface: #f0ebe4;
+      --anger: #c0392b;
+      --anger-soft: #ddd7d0;
+      --user-bubble: #7a3030;
+      --user-text: #f5f0eb;
+      --ai-bubble: #f0ebe4;
+      --ai-text: #2c2420;
+      --border: #c8bfb6;
+      --muted: #8a7e78;
+      --ink: #2c2420;
+      --shadow: rgba(100, 40, 30, 0.10);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Nunito', sans-serif;
+      background-image: radial-gradient(circle at 15% 15%, #ddd5cc 0%, transparent 55%),
+                        radial-gradient(circle at 85% 85%, #d8cfc7 0%, transparent 55%);
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      box-shadow: 0 2px 16px var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .bot-avatar {
+      width: 42px; height: 42px;
+      background: var(--anger);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 12px var(--shadow);
+      animation: wiggle 3s ease-in-out infinite;
+    }
+
+    @keyframes wiggle {
+      0%, 90%, 100% { transform: rotate(0deg); }
+      92%            { transform: rotate(-5deg); }
+      96%            { transform: rotate(5deg); }
+    }
+
+    .header-text h1 {
+      font-family: 'Righteous', sans-serif;
+      font-size: 1.35rem;
+      color: var(--anger);
+      letter-spacing: 0.5px;
+    }
+
+    .header-text p {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* status dot */
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #22c55e88;
+    }
+
+    /* ── LAYOUT ── */
+    .shell {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 74px);
+    }
+
+    /* ── MESSAGES ── */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .msg-row {
+      display: flex;
+      gap: 10px;
+      animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      opacity: 0;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92) translateY(8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+      align-self: flex-end;
+    }
+
+    .msg-row.assistant .avatar {
+      background: var(--anger);
+      box-shadow: 0 3px 10px var(--shadow);
+    }
+
+    .msg-row.user .avatar {
+      background: #f0e8e6;
+    }
+
+    .bubble-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 65%;
+    }
+
+    .msg-row.user .bubble-wrap { align-items: flex-end; }
+
+    .msg-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 4px;
+    }
+
+    .bubble {
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 600;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border-radius: 18px;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+
+    .msg-row.user .bubble {
+      background: var(--user-bubble);
+      color: var(--user-text);
+      border-radius: 18px 18px 4px 18px;
+    }
+
+    .msg-row.assistant .bubble {
+      background: var(--ai-bubble);
+      color: var(--ai-text);
+      border: 1.5px solid var(--border);
+      border-radius: 18px 18px 18px 4px;
+    }
+
+    /* Typing indicator */
+    .typing-dots {
+      display: flex;
+      gap: 5px;
+      padding: 14px 18px;
+      align-items: center;
+    }
+
+    .typing-dots span {
+      width: 8px; height: 8px;
+      background: var(--anger);
+      border-radius: 50%;
+      animation: bounce 1s infinite;
+      opacity: 0.7;
+    }
+
+    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30%            { transform: translateY(-6px); }
+    }
+
+    /* ── INPUT BAR ── */
+    .input-bar {
+      border-top: 2px solid var(--border);
+      padding: 14px 20px;
+      background: var(--surface);
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      box-shadow: 0 -4px 20px var(--shadow);
+    }
+
+    #input {
+      flex: 1;
+      background: #ddd7d0;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 16px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      resize: none;
+      min-height: 46px;
+      max-height: 140px;
+      outline: none;
+      line-height: 1.5;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #input::placeholder { color: #c4a09a; }
+    #input:focus {
+      border-color: var(--anger);
+      box-shadow: 0 0 0 3px rgba(255,68,34,0.12);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    button {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 18px;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+    }
+
+    button:active { transform: scale(0.96); }
+
+    #send-btn {
+      background: var(--anger);
+      color: #fff;
+      box-shadow: 0 4px 14px var(--shadow);
+      min-width: 80px;
+    }
+
+    #send-btn:hover:not(:disabled) {
+      background: #e03318;
+      box-shadow: 0 6px 18px rgba(255,68,34,0.3);
+    }
+
+    #send-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    #clear-btn {
+      background: #d8d0c8;
+      color: var(--muted);
+    }
+
+    #clear-btn:hover { background: #ccc3ba; color: var(--anger); }
+
+    /* Empty state */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .empty-emoji {
+      font-size: 5rem;
+      animation: shake 2.5s ease-in-out infinite;
+    }
+
+    @keyframes shake {
+      0%, 85%, 100% { transform: rotate(0deg); }
+      88%  { transform: rotate(-8deg); }
+      92%  { transform: rotate(8deg); }
+      96%  { transform: rotate(-4deg); }
+    }
+
+    .empty-state h2 {
+      font-family: 'Righteous', sans-serif;
+      font-size: 1.4rem;
+      color: var(--anger);
+      letter-spacing: 1px;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="bot-avatar">😤</div>
+    <div class="header-text">
+      <h1>ANGRY BOT</h1>
+      <p>mistral-small-2506 · very upset today</p>
+    </div>
+  </div>
+  <div class="status">
+    <div class="status-dot"></div>
+    Seething online
+  </div>
+</header>
+
+<div class="shell">
+  <div id="messages">
+    <div class="empty-state" id="empty">
+      <div class="empty-emoji">😤</div>
+      <h2>WHAT DO YOU WANT?!</h2>
+      <p>Go ahead. Dare to ask something.</p>
+    </div>
+  </div>
+
+  <div class="input-bar">
+    <textarea id="input" placeholder="Ask something... if you must 🙄" rows="1"></textarea>
+    <div class="btn-row">
+      <button id="send-btn">Send 😠</button>
+      <button id="clear-btn">Clear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl    = document.getElementById('input');
+  const sendBtn    = document.getElementById('send-btn');
+  const clearBtn   = document.getElementById('clear-btn');
+  const emptyEl    = document.getElementById('empty');
+
+  let history = []; // { role, content }[]
+
+  function hideEmpty() {
+    if (emptyEl) emptyEl.style.display = 'none';
+  }
+
+  function appendBubble(role, content = '') {
+    hideEmpty();
+    const row = document.createElement('div');
+    row.className = `msg-row ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = role === 'user' ? '🧑' : '😤';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'bubble-wrap';
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? 'You' : 'Angry Bot';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = content;
+
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+    row.appendChild(avatar);
+    row.appendChild(wrap);
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return bubble;
+  }
+
+  function showTyping() {
+    hideEmpty();
+    const row = document.createElement('div');
+    row.className = 'msg-row assistant';
+    row.id = 'typing-row';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = '😤';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'bubble-wrap';
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = 'Angry Bot';
+
+    const dots = document.createElement('div');
+    dots.className = 'bubble typing-dots';
+    dots.innerHTML = '<span></span><span></span><span></span>';
+
+    wrap.appendChild(label);
+    wrap.appendChild(dots);
+    row.appendChild(avatar);
+    row.appendChild(wrap);
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return row;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing-row');
+    if (el) el.remove();
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    history.push({ role: 'user', content: text });
+    appendBubble('user', text);
+
+    const typingRow = showTyping();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history })
+      });
+
+      removeTyping();
+      const bubble = appendBubble('assistant', '');
+      let fullText = '';
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const lines = decoder.decode(value).split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (data === '[DONE]') break;
+          try {
+            const { content } = JSON.parse(data);
+            fullText += content;
+            bubble.textContent = fullText;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+          } catch {}
+        }
+      }
+
+      history.push({ role: 'assistant', content: fullText });
+
+    } catch (err) {
+      removeTyping();
+      appendBubble('assistant', '⚠ Error: ' + err.message);
+    }
+
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+
+  // Auto-resize textarea
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
+  });
+
+  // Send on Enter (Shift+Enter for newline)
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  clearBtn.addEventListener('click', () => {
+    history = [];
+    messagesEl.innerHTML = '';
+    messagesEl.appendChild(emptyEl);
+    emptyEl.style.display = 'flex';
+  });
+</script>
+</body>
+</html>
